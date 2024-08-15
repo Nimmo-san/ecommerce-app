@@ -1,3 +1,4 @@
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
@@ -5,9 +6,11 @@ const cors = require('cors')
 
 dotenv.config();
 
-
 const app = express();
 app.use(cors());
+
+// Middleware
+app.use(express.json());
 
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
@@ -19,19 +22,41 @@ const orderRoutes = require('./routes/orderRoutes');
 app.use('/api/orders', orderRoutes);
 
 
-// Middleware
-app.use(express.json());
-
 // Database Connection
-mongoose.connect(process.env.MONGO_URI)
+/*mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.log(err));
+*/
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(process.env.MONGO_URI, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
+  });
 
-// Basic Route
+async function run() {
+    try {
+        // Connect the client to the server	(optional starting in v4.7)
+        await client.connect();
+        // Send a ping to confirm a successful connection
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    } finally {
+        // Ensures that the client will close when you finish/error
+        await client.close();
+    }
+}
+
+// Basic routing
 app.get('/', (req, res) => {
     res.send('E-commerce API running');
 });
 
-const PORT = process.env.PORT || 5001; // PORT can be taken from .env or here
+// dynamically assigning PORT
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
+
+run().catch(console.dir);
